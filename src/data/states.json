@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "name": "Andhra Pradesh",
+    "cities": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Anantapur", "Kadapa", "Chittoor", "Prakasam", "Srikakulam"]
+  },
+  {
+    "id": 2,
+    "name": "Delhi",
+    "cities": ["New Delhi", "Old Delhi", "Dwarka", "Rohini", "Pitampura", "Shahdara", "Laxmi Nagar", "Mayur Vihar", "Saket", "Vasant Vihar"]
+  },
+  {
+    "id": 3,
+    "name": "Maharashtra",
+    "cities": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Kolhapur", "Amravati", "Nanded"]
+  },
+  {
+    "id": 4,
+    "name": "Karnataka",
+    "cities": ["Bangalore", "Mysore", "Hubli", "Mangalore", "Belgaum", "Gulbarga", "Bellary", "Bijapur", "Shimoga", "Tumkur"]
+  },
+  {
+    "id": 5,
+    "name": "Tamil Nadu",
+    "cities": ["Chennai", "Coimbatore", "Madurai", "Salem", "Vellore", "Tiruchirappalli", "Erode", "Thoothukkudi", "Dindigul", "Thanjavur"]
+  },
+  {
+    "id": 6,
+    "name": "Gujarat",
+    "cities": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Gandhinagar", "Anand", "Bharuch", "Valsad"]
+  },
+  {
+    "id": 7,
+    "name": "Uttar Pradesh",
+    "cities": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Prayagraj", "Ghaziabad", "Noida", "Meerut", "Bareilly", "Aligarh"]
+  },
+  {
+    "id": 8,
+    "name": "West Bengal",
+    "cities": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri", "Bardhaman", "Malda", "Baharampur", "Habra", "Kharagpur"]
+  },
+  {
+    "id": 9,
+    "name": "Telangana",
+    "cities": ["Hyderabad", "Warangal", "Karimnagar", "Nizamabad", "Khammam", "Adilabad", "Nalgonda", "Mahbubnagar", "Medak", "Rangareddy"]
+  },
+  {
+    "id": 10,
+    "name": "Rajasthan",
+    "cities": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Sikar", "Sri Ganganagar", "Alwar", "Bhilwara"]
+  }
+]
