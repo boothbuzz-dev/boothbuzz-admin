@@ -8,7 +8,7 @@ import { Button } from '../components/UI/Button';
 import { EventVendorPurchaseOrderModal } from '../components/Events/EventVendorPurchaseOrderModal';
 import { EventFlyerGeneratorModal } from '../components/Events/EventFlyerGeneratorModal';
 import { Event, Exhibitor } from '../types';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useEvents, useVenues, useVendors, useExhibitors, useSponsors } from '../hooks/useSupabaseData';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -214,7 +214,7 @@ export const Events: React.FC = () => {
   useEffect(() => {
     if (!isSuperAdmin) return;
     let cancelled = false;
-    supabase
+    apiClient
       .from('organizations')
       .select('id, name')
       .order('name', { ascending: true })
@@ -422,7 +422,7 @@ export const Events: React.FC = () => {
   const [eventVendorIdsWithPO, setEventVendorIdsWithPO] = useState<string[]>([]);
 
   const refreshEventVendorIdsWithPO = useCallback(async (eventId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('purchase_orders')
       .select('vendor_id')
       .eq('event_id', eventId);
@@ -454,7 +454,7 @@ export const Events: React.FC = () => {
     }
     let cancelled = false;
     setLoadingRegistrations(true);
-    supabase
+    apiClient
       .from('event_registrations')
       .select('id, event_id, exhibitor_id, status, stall_no, created_at')
       .eq('event_id', editFormData.id)
@@ -484,7 +484,7 @@ export const Events: React.FC = () => {
     }
     let cancelled = false;
     setLoadingEventSponsors(true);
-    supabase
+    apiClient
       .from('event_sponsors')
       .select('sponsor_id, role')
       .eq('event_id', editFormData.id)
@@ -509,7 +509,7 @@ export const Events: React.FC = () => {
     }
     let cancelled = false;
     setLoadingViewSponsors(true);
-    supabase
+    apiClient
       .from('event_sponsors')
       .select('sponsor_id, role')
       .eq('event_id', selectedEvent.id)
@@ -536,7 +536,7 @@ export const Events: React.FC = () => {
     }
     let cancelled = false;
     setLoadingViewRegistrations(true);
-    supabase
+    apiClient
       .from('event_registrations')
       .select('id, event_id, exhibitor_id, status, stall_no, created_at')
       .eq('event_id', selectedEvent.id)
@@ -608,7 +608,7 @@ export const Events: React.FC = () => {
     patch: Partial<Pick<EventRegistrationRow, 'status' | 'stall_no'>>,
     failureLabel: string,
   ): Promise<EventRegistrationRow | null> => {
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('event_registrations')
       .update(patch)
       .eq('id', reg.id)
@@ -654,7 +654,7 @@ export const Events: React.FC = () => {
     if (!updated) {
       return false;
     }
-    const { error: updateEventError } = await supabase.from('events').update({ exhibitor_ids: newIds }).eq('id', eventId);
+    const { error: updateEventError } = await apiClient.from('events').update({ exhibitor_ids: newIds }).eq('id', eventId);
     if (updateEventError) {
       console.error('Error adding exhibitor to event:', updateEventError);
       showNotification(updateEventError.message, 'error');
@@ -711,7 +711,7 @@ export const Events: React.FC = () => {
   };
 
   const syncExhibitorApprovedStatus = async (exhibitorId: string) => {
-    const { error } = await supabase.from('exhibitors').update({ status: 'approved' }).eq('id', exhibitorId);
+    const { error } = await apiClient.from('exhibitors').update({ status: 'approved' }).eq('id', exhibitorId);
     if (error) {
       showNotification('Registration saved but exhibitor status could not be updated: ' + error.message, 'error');
       return;
@@ -761,14 +761,14 @@ export const Events: React.FC = () => {
     ) {
       return;
     }
-    const { error } = await supabase.from('event_registrations').delete().eq('id', reg.id);
+    const { error } = await apiClient.from('event_registrations').delete().eq('id', reg.id);
     if (error) {
       console.error(error);
       showNotification('Could not remove registration: ' + error.message, 'error');
       return;
     }
     const newIds = (selectedExhibitorsForEdit || []).filter((id) => id !== reg.exhibitor_id);
-    const { error: evErr } = await supabase
+    const { error: evErr } = await apiClient
       .from('events')
       .update({ exhibitor_ids: newIds })
       .eq('id', editFormData.id);
@@ -1216,13 +1216,13 @@ export const Events: React.FC = () => {
         const fileExt = file.name.split('.').pop() || 'jpg';
         const fileName = `flyer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${fileExt}`;
         const filePath = `event-images/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, file);
+        const { error: uploadError } = await apiClient.storage.from('event-images').upload(filePath, file);
         if (uploadError) {
           console.error('❌ Flyer upload failed:', uploadError);
           showNotification('Flyer upload failed: ' + uploadError.message, 'error');
           return null;
         }
-        const { data: urlData } = supabase.storage.from('event-images').getPublicUrl(filePath);
+        const { data: urlData } = apiClient.storage.from('event-images').getPublicUrl(filePath);
         return urlData.publicUrl;
       };
 
@@ -1255,7 +1255,7 @@ export const Events: React.FC = () => {
           const fileName = `layout_${Date.now()}.${fileExt}`;
           const filePath = `event-images/${fileName}`;
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await apiClient.storage
             .from('event-images')
             .upload(filePath, editFormData.layoutImage);
 
@@ -1266,7 +1266,7 @@ export const Events: React.FC = () => {
             console.log('⚠️ Continuing without new layout image upload');
           } else {
             // Get public URL
-            const { data: urlData } = supabase.storage
+            const { data: urlData } = apiClient.storage
               .from('event-images')
               .getPublicUrl(filePath);
 
@@ -1325,7 +1325,7 @@ export const Events: React.FC = () => {
 
       console.log('📤 Updating event data:', updateData);
       
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('events')
         .update(updateData)
         .eq('id', editFormData.id);
@@ -1337,7 +1337,7 @@ export const Events: React.FC = () => {
       }
 
       // Sync event_sponsors: replace all for this event
-      const { error: deleteErr } = await supabase
+      const { error: deleteErr } = await apiClient
         .from('event_sponsors')
         .delete()
         .eq('event_id', editFormData.id);
@@ -1345,7 +1345,7 @@ export const Events: React.FC = () => {
         console.error('❌ Event sponsors delete failed:', deleteErr);
         showNotification('Event saved but sponsors could not be updated.', 'error');
       } else if (eventSponsors.length > 0) {
-        const { error: insertErr } = await supabase
+        const { error: insertErr } = await apiClient
           .from('event_sponsors')
           .insert(eventSponsors.map(({ sponsorId, role }) => ({
             event_id: editFormData.id,
@@ -1371,7 +1371,7 @@ export const Events: React.FC = () => {
     if (selectedEvent) {
       console.log('🗑️ Deleting event:', selectedEvent.id);
       
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('events')
         .delete()
         .eq('id', selectedEvent.id);
@@ -1471,7 +1471,7 @@ export const Events: React.FC = () => {
     try {
       setExhibitorUpdates((prev) => ({ ...prev, [exhibitorId]: newStatus }));
 
-      const { error } = await supabase.from('exhibitors').update({ status: newStatus }).eq('id', exhibitorId);
+      const { error } = await apiClient.from('exhibitors').update({ status: newStatus }).eq('id', exhibitorId);
 
       if (error) {
         console.error('Error updating exhibitor status:', error);
@@ -1705,7 +1705,7 @@ export const Events: React.FC = () => {
     const newIds = needsEventRow ? [...prevSelected, exhibitorId] : [...prevSelected];
 
     if (needsEventRow) {
-      const { error: evErr } = await supabase
+      const { error: evErr } = await apiClient
         .from('events')
         .update({ exhibitor_ids: newIds })
         .eq('id', editFormData.id);
@@ -1720,7 +1720,7 @@ export const Events: React.FC = () => {
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('event_registrations')
       .insert({
         event_id: editFormData.id,
@@ -1732,7 +1732,7 @@ export const Events: React.FC = () => {
 
     if (error) {
       if (needsEventRow) {
-        await supabase.from('events').update({ exhibitor_ids: prevSelected }).eq('id', editFormData.id);
+        await apiClient.from('events').update({ exhibitor_ids: prevSelected }).eq('id', editFormData.id);
         setSelectedExhibitorsForEdit(prevSelected);
         if (selectedEvent?.id === editFormData.id) {
           setSelectedEvent((prev) => (prev ? { ...prev, exhibitors: prevSelected } : null));

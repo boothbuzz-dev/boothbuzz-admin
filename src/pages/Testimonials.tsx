@@ -5,7 +5,7 @@ import { Button } from '../components/UI/Button';
 import { Badge } from '../components/UI/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/UI/Table';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 /** Matches public.testimonials columns */
 export interface TestimonialRow {
@@ -53,7 +53,7 @@ export const Testimonials: React.FC = () => {
   const fetchRows = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase
+    const { data, error: err } = await apiClient
       .from('testimonials')
       .select(TESTIMONIAL_COLUMNS)
       .order('sort_order', { ascending: true })
@@ -104,7 +104,7 @@ export const Testimonials: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      const { error: err } = await supabase.from('testimonials').insert(toInsertPayload(form));
+      const { error: err } = await apiClient.from('testimonials').insert(toInsertPayload(form));
       if (err) throw err;
       setSuccess('Testimonial created.');
       setForm(emptyForm);
@@ -140,7 +140,7 @@ export const Testimonials: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      const { error: err } = await supabase
+      const { error: err } = await apiClient
         .from('testimonials')
         .update(toInsertPayload(editForm))
         .eq('id', editRow.id);
@@ -159,7 +159,7 @@ export const Testimonials: React.FC = () => {
     setError(null);
     setSubmitting(true);
     try {
-      const { error: err } = await supabase.from('testimonials').delete().eq('id', deleteRow.id);
+      const { error: err } = await apiClient.from('testimonials').delete().eq('id', deleteRow.id);
       if (err) throw err;
       setSuccess('Testimonial deleted.');
       setDeleteRow(null);

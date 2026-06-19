@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { apiClient } from './apiClient';
 
 export type ExhibitorUploadResult = { url: string | null; error: string | null };
 
@@ -13,7 +13,7 @@ export async function uploadExhibitorPublicImage(
   const ext = file.name.split('.').pop() || 'jpg';
   const safe = namePrefix.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
   const filePath = `${folder}/${safe}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { data, error } = await supabase.storage.from('exhibitor-images').upload(filePath, file, {
+  const { data, error } = await apiClient.storage.from('exhibitor-images').upload(filePath, file, {
     upsert: false,
     contentType: file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
     cacheControl: '3600',
@@ -24,7 +24,7 @@ export async function uploadExhibitorPublicImage(
     return { url: null, error: msg };
   }
   const path = data?.path ?? filePath;
-  const { data: pub } = supabase.storage.from('exhibitor-images').getPublicUrl(path);
+  const { data: pub } = apiClient.storage.from('exhibitor-images').getPublicUrl(path);
   const publicUrl = pub?.publicUrl ?? null;
   if (!publicUrl) {
     return { url: null, error: 'Could not build public URL for uploaded file' };

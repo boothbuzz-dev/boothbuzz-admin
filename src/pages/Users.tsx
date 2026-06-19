@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUsers } from '../hooks/useSupabaseData';
 import { X, Save, AlertTriangle } from 'lucide-react';
 import { User, UserRole } from '../types';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 interface FormData {
   name: string;
@@ -431,7 +431,7 @@ export const Users: React.FC = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const { hasRole, isSuperAdmin } = useAuth();
+  const { hasRole, isSuperAdmin, user: authUser } = useAuth();
   const [viewModal, setViewModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [editModal, setEditModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; user: User | null }>({ isOpen: false, user: null });
@@ -525,23 +525,15 @@ export const Users: React.FC = () => {
     try {
       console.log('formData:', formData);
       
-      // Get the authenticated user from Supabase
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.session?.user) {
-        console.error('Session error:', sessionError || 'User not authenticated');
+      if (!authUser) {
         showNotification('You must be logged in to update user data', 'error');
         return;
       }
 
-      const authenticatedUser = session.session.user;
-      console.log('Authenticated user:', authenticatedUser);
-
-      // First, check if the authenticated user exists in our users table
-      const { data: currentUser, error: userError } = await supabase
+      const { data: currentUser, error: userError } = await apiClient
         .from('users')
         .select('id, role, email, organization_id')
-        .eq('email', authenticatedUser.email)
+        .eq('email', authUser.email)
         .maybeSingle();
 
       if (userError) {
@@ -565,7 +557,7 @@ export const Users: React.FC = () => {
 
       // For super_admin, also verify the target user exists
       if (currentUser.role === 'super_admin' && formData.id !== currentUser.id) {
-        const { data: targetUser, error: targetError } = await supabase
+        const { data: targetUser, error: targetError } = await apiClient
           .from('users')
           .select('id')
           .eq('id', formData.id)
@@ -597,7 +589,7 @@ export const Users: React.FC = () => {
       console.log('Updating user with data:', updateData);
 
       // Perform the update
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('users')
         .update(updateData)
         .eq('id', formData.id);
@@ -632,7 +624,7 @@ export const Users: React.FC = () => {
   const handleConfirmDelete = async (userId: any) => {
     try {
       // Delete user from Supabase
-      const { error, data } = await supabase
+      const { error, data } = await apiClient
         .from('users')
         .delete()
         .eq('id', userId);

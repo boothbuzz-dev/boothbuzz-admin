@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/apiClient';
 
 type Props = Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
   src: string;
@@ -43,7 +43,7 @@ export const ExhibitorStorageImage: React.FC<Props> = ({ src, alt = '', onError,
         return;
       }
       triedSign.current = true;
-      const { data, error } = await supabase.storage
+      const { data, error } = await apiClient.storage
         .from(parsed.bucket)
         .createSignedUrl(parsed.path, 3600);
       if (!error && data?.signedUrl) {

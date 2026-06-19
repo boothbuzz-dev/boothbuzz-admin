@@ -5,7 +5,7 @@ declare global {
 }
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import {
   validateEmail, 
   validatePhone, 
@@ -260,9 +260,9 @@ export const AddVenue: React.FC = () => {
         const f = item.file as File;
         const safeName = f.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
         const path = `${slug}/${Date.now()}_${safeName}`;
-        const { data: up, error: upErr } = await supabase.storage.from('venue-photos').upload(path, f, { upsert: false });
+        const { data: up, error: upErr } = await apiClient.storage.from('venue-photos').upload(path, f, { upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('venue-photos').getPublicUrl(up.path);
+        const { data: pub } = apiClient.storage.from('venue-photos').getPublicUrl(up.path);
         uploadedPhotos.push({ name: `${venueIdHint} - ${f.name}`, url: pub.publicUrl, type: f.type, size: f.size });
       }
 
@@ -272,9 +272,9 @@ export const AddVenue: React.FC = () => {
         if (!f) continue;
         const safeName = f.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
         const path = `${slug}/${Date.now()}_${safeName}`;
-        const { data: up, error: upErr } = await supabase.storage.from('venue-documents').upload(path, f, { upsert: false });
+        const { data: up, error: upErr } = await apiClient.storage.from('venue-documents').upload(path, f, { upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('venue-documents').getPublicUrl(up.path);
+        const { data: pub } = apiClient.storage.from('venue-documents').getPublicUrl(up.path);
         uploadedDocs.push({ name: d.name ? `${venueIdHint} - ${d.name}` : `${venueIdHint} - ${f.name}`, url: pub.publicUrl, type: f.type, size: f.size });
       }
 
@@ -939,7 +939,7 @@ export const AddVenue: React.FC = () => {
   const checkForDuplicates = async (): Promise<{ hasDuplicates: boolean; message: string }> => {
     try {
       // Check for duplicate venue names
-      const { data: nameDuplicates, error: nameError } = await supabase
+      const { data: nameDuplicates, error: nameError } = await apiClient
         .from('venues')
         .select('id, name')
         .ilike('name', formData.name.trim())
@@ -955,7 +955,7 @@ export const AddVenue: React.FC = () => {
       }
 
       // Check for duplicate addresses
-      const { data: addressDuplicates, error: addressError } = await supabase
+      const { data: addressDuplicates, error: addressError } = await apiClient
         .from('venues')
         .select('id, name, address_line1')
         .ilike('address_line1', formData.addressLine1.trim())
@@ -1054,7 +1054,7 @@ export const AddVenue: React.FC = () => {
       console.log('⚠️  Note: Some form fields are commented out until database columns are added');
       console.log('📋 Missing columns: contact_role, address_line1, address_landmark, address_standard, area_sq_ft, kind_of_space, is_covered, pricing_per_day, facility_area_sq_ft, no_of_stalls, facility_covered, no_of_flats, latitude, longitude, formatted_address, custom_contacts, bank_name, bank_account_number, bank_holder_name, bank_ifsc, bank_micr');
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('venues')
         .insert(insertData)
         .select()

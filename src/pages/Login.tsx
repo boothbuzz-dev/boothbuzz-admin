@@ -11,6 +11,10 @@ export const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, user } = useAuth();
 
+  if (user?.mustChangePassword) {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -27,15 +31,14 @@ export const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
+      const result = await login(email, password);
 
-      if (success) {
-        // Full page redirect so app re-initializes with session and shows dashboard
-        window.location.replace('/dashboard');
+      if (result.mustChangePassword) {
+        window.location.replace('/change-password');
         return;
       }
 
-      setError('Invalid email or password');
+      window.location.replace('/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err?.message || 'Login failed. Please try again.');

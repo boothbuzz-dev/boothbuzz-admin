@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { X, FileText, Plus, Trash2, Pencil } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { apiClient } from '../../lib/apiClient';
 import { Button } from '../UI/Button';
 import { Badge } from '../UI/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../UI/Table';
@@ -66,7 +66,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
     if (!eventId || !vendorId) return;
     setLoading(true);
     setError(null);
-    const { data, error: fetchErr } = await supabase
+    const { data, error: fetchErr } = await apiClient
       .from('purchase_orders')
       .select('id, po_number, status, grand_total, currency, created_at')
       .eq('event_id', eventId)
@@ -106,7 +106,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
   const openEdit = async (row: POListRow) => {
     setError(null);
     setEditFetchBusy(true);
-    const { data: poRow, error: poErr } = await supabase
+    const { data: poRow, error: poErr } = await apiClient
       .from('purchase_orders')
       .select('id, po_number, status, notes, tax_total')
       .eq('id', row.id)
@@ -116,7 +116,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
       setEditFetchBusy(false);
       return;
     }
-    const { data: lineRows, error: lineErr } = await supabase
+    const { data: lineRows, error: lineErr } = await apiClient
       .from('purchase_order_lines')
       .select('description, quantity, unit_price, line_no')
       .eq('purchase_order_id', row.id)
@@ -185,7 +185,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
 
     let poNumber = generatePoNumber();
     for (let attempt = 0; attempt < 5; attempt++) {
-      const { data: inserted, error: insErr } = await supabase
+      const { data: inserted, error: insErr } = await apiClient
         .from('purchase_orders')
         .insert({
           organization_id: organizationId,
@@ -212,9 +212,9 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
           unit_price: l.unit_price,
           amount: l.quantity * l.unit_price,
         }));
-        const { error: lineErr } = await supabase.from('purchase_order_lines').insert(lineRows);
+        const { error: lineErr } = await apiClient.from('purchase_order_lines').insert(lineRows);
         if (lineErr) {
-          await supabase.from('purchase_orders').delete().eq('id', inserted.id);
+          await apiClient.from('purchase_orders').delete().eq('id', inserted.id);
           setError(lineErr.message);
         } else {
           onSaved?.();
@@ -257,7 +257,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
     const taxN = parseFloat(taxTotal) || 0;
     const grandN = sub + taxN;
 
-    const { error: updErr } = await supabase
+    const { error: updErr } = await apiClient
       .from('purchase_orders')
       .update({
         status,
@@ -275,7 +275,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
       return;
     }
 
-    const { error: delErr } = await supabase.from('purchase_order_lines').delete().eq('purchase_order_id', editingPoId);
+    const { error: delErr } = await apiClient.from('purchase_order_lines').delete().eq('purchase_order_id', editingPoId);
     if (delErr) {
       setError(delErr.message);
       setSaving(false);
@@ -290,7 +290,7 @@ export const EventVendorPurchaseOrderModal: React.FC<EventVendorPurchaseOrderMod
       unit_price: l.unit_price,
       amount: l.quantity * l.unit_price,
     }));
-    const { error: insErr } = await supabase.from('purchase_order_lines').insert(lineRows);
+    const { error: insErr } = await apiClient.from('purchase_order_lines').insert(lineRows);
     if (insErr) {
       setError(insErr.message);
       setSaving(false);

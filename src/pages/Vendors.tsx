@@ -7,7 +7,7 @@ import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { mockVendors } from '../data/mockData';
 import { Vendor } from '../types';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useVendors } from '../hooks/useSupabaseData';
 
 export const Vendors: React.FC = () => {
@@ -92,7 +92,7 @@ export const Vendors: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (editFormData) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('vendors')
         .update({
           name: editFormData.name,
@@ -121,7 +121,7 @@ export const Vendors: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (selectedVendor) {
-      const { error, data } = await supabase
+      const { error, data } = await apiClient
         .from('vendors')
         .delete()
         .eq('id', selectedVendor.id);

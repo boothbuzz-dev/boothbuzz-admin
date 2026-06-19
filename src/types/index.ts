@@ -34,10 +34,12 @@ export interface User {
   updated_at: string;
   organizationId?: string | null;
   organizationName?: string | null;
+  mustChangePassword?: boolean;
 }
 
 export type UserRole = 
   | 'super_admin'
+  | 'system_support'
   | 'admin'
   | 'support_tech'
   | 'sales_marketing'

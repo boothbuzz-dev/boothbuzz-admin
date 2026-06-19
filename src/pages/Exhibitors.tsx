@@ -38,7 +38,7 @@ import { PhoneInput } from '../components/UI/PhoneInput';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/UI/Table';
 import { useExhibitors } from '../hooks/useSupabaseData';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { uploadExhibitorPublicImage } from '../lib/exhibitorStorage';
 import {
   exhibitorPortfolioDisplayUrl,
@@ -214,7 +214,7 @@ const handleDocumentUpload = async (file: File, fileName: string): Promise<strin
     const filePath = `${fileName}.${fileExt}`;
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await apiClient.storage
       .from('exhibitor-documents')
       .upload(filePath, file, {
         upsert: true
@@ -226,7 +226,7 @@ const handleDocumentUpload = async (file: File, fileName: string): Promise<strin
     }
 
     // Get signed URL since bucket is not public
-    const { data: signedUrl, error: signedError } = await supabase.storage
+    const { data: signedUrl, error: signedError } = await apiClient.storage
       .from('exhibitor-documents')
       .createSignedUrl(filePath, 3600); // 1 hour expiry
 
@@ -364,7 +364,7 @@ export const Exhibitors: React.FC = () => {
 
   React.useEffect(() => {
     const loadEventTaxonomy = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('event_categories')
         .select('name, sort_order, event_subcategories(name, sort_order)')
         .order('sort_order', { ascending: true });
@@ -772,7 +772,7 @@ export const Exhibitors: React.FC = () => {
       console.log('Update data being sent:', updateData);
       console.log('Updating exhibitor ID:', editFormData.id);
 
-        const { data, error } = await supabase
+        const { data, error } = await apiClient
           .from('exhibitors')
           .update(updateData)
           .eq('id', editFormData.id)
@@ -862,7 +862,7 @@ export const Exhibitors: React.FC = () => {
       return;
     }
     if (selectedExhibitor) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('exhibitors')
         .delete()
         .eq('id', selectedExhibitor.id);

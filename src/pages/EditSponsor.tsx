@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import {
   ArrowLeft,
   Building2,
@@ -60,7 +60,7 @@ export const EditSponsor: React.FC = () => {
       setLoading(false);
       return;
     }
-    supabase
+    apiClient
       .from('sponsors')
       .select('*')
       .eq('id', id)
@@ -121,7 +121,7 @@ export const EditSponsor: React.FC = () => {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('sponsors')
         .update({
           company_name: formData.companyName.trim(),

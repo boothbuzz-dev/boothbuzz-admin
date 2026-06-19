@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { Button } from '../components/UI/Button';
 import { Card } from '../components/UI/Card';
 import { PhoneInput } from '../components/UI/PhoneInput';
@@ -65,7 +65,7 @@ export default function EditExhibitor() {
 
   const fetchExhibitor = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('exhibitors')
         .select('*')
         .eq('id', id)
@@ -109,7 +109,7 @@ export default function EditExhibitor() {
         const fileExt = file.name.split('.').pop();
         const fileName = `documents/${exhibitorId}/${Date.now()}.${fileExt}`;
         
-        const { error } = await supabase.storage
+        const { error } = await apiClient.storage
           .from('exhibitor-documents')
           .upload(fileName, file);
 
@@ -124,7 +124,7 @@ export default function EditExhibitor() {
       const fileExt = formData.profile_image.name.split('.').pop();
       const fileName = `profiles/${exhibitorId}/${Date.now()}.${fileExt}`;
       
-      const { error } = await supabase.storage
+      const { error } = await apiClient.storage
         .from('exhibitor-documents')
         .upload(fileName, formData.profile_image);
 
@@ -148,7 +148,7 @@ export default function EditExhibitor() {
 
       // Handle documents
       if (newDocs.length > 0) {
-        const { data: existing } = await supabase
+        const { data: existing } = await apiClient
           .from('exhibitors')
           .select('documents')
           .eq('id', id)
@@ -163,7 +163,7 @@ export default function EditExhibitor() {
         updateData.profile_image = newImage;
       }
 
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('exhibitors')
         .update(updateData)
         .eq('id', id);

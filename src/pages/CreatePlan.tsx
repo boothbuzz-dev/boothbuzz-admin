@@ -24,7 +24,7 @@ import {
 import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { Badge } from '../components/UI/Badge';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 interface PlanFeature {
   id: string;
@@ -294,7 +294,7 @@ export const CreatePlan: React.FC = () => {
         ),
       };
 
-      const { error } = await supabase.from('vendor_subscription_plans').insert({
+      const { error } = await apiClient.from('vendor_subscription_plans').insert({
         code,
         name: formData.name.trim(),
         description: formData.description.trim(),

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { 
   Save, 
   ArrowLeft, 
@@ -153,7 +153,7 @@ export const AddUser: React.FC = () => {
 
   React.useEffect(() => {
     if (!isSuperAdmin) return;
-    supabase.from('organizations').select('id, name').order('name').then(({ data }) => {
+    apiClient.from('organizations').select('id, name').order('name').then(({ data }) => {
       setOrganizations(data || []);
     });
   }, [isSuperAdmin]);
@@ -241,7 +241,7 @@ export const AddUser: React.FC = () => {
     try {
       if (isOrgAdminFlow) {
         if (formData.sendInvite) throw new Error('Email invites are not available in POC — set a password.');
-        const { error: apiErr } = await supabase.from('users').insert({
+        const { error: apiErr } = await apiClient.from('users').insert({
           email: formData.email.trim(),
           name: formData.name.trim(),
           role: formData.role,
@@ -255,37 +255,16 @@ export const AddUser: React.FC = () => {
         return;
       }
 
-      // Super-admin path: client signUp cannot set email_confirm. For new users to log in
-      // without clicking a link, either disable "Confirm email" in Supabase Dashboard
-      // (Auth → Providers → Email) or create users via an Edge Function with email_confirm: true.
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
+      const { error: apiErr } = await apiClient.from('users').insert({
+        email: formData.email.trim(),
+        name: formData.name.trim(),
+        role: formData.role,
         password: formData.password,
-        options: {
-          data: {
-            name: formData.name,
-            role: formData.role,
-            city: formData.city || null,
-            phone: formData.phone
-          }
-        }
-      });
-      if (authError) throw new Error(authError.message);
-      if (!authData.user) throw new Error('Failed to create user account');
-
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: formData.email,
-          name: formData.name,
-          role: formData.role as UserRole,
-          city: formData.city || null,
-          phone: formData.phone,
-          status: formData.status,
-          organization_id: formData.organizationId || null
-        });
-      if (profileError) throw new Error('Failed to create user profile: ' + profileError.message);
+        phone: formData.phone?.trim() || undefined,
+        city: formData.city?.trim() || undefined,
+        organizationId: formData.organizationId || undefined,
+      }).execute();
+      if (apiErr) throw new Error(apiErr.message);
 
       setSubmitSuccess(true);
       setTimeout(() => navigate('/users'), 2000);

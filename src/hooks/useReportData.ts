@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Event, Venue } from '../types';
 
@@ -166,7 +166,7 @@ export function useReportData(selectedReportOrgId: string, dateRange: string) {
       const orgIdForVenues =
         isSuperAdmin && selectedReportOrgId !== 'all' ? selectedReportOrgId : adminOrgId;
 
-      let eventsQuery = supabase
+      let eventsQuery = apiClient
         .from('events')
         .select('*, venue:venues(name)')
         .gte('event_date', startStr)
@@ -177,7 +177,7 @@ export function useReportData(selectedReportOrgId: string, dateRange: string) {
         eventsQuery = eventsQuery.eq('organization_id', orgIdForEvents);
       }
 
-      let venuesQuery = supabase
+      let venuesQuery = apiClient
         .from('venues')
         .select('*')
         .order('name', { ascending: true });

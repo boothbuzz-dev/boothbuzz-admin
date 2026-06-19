@@ -6,7 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { Venue } from '../types';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useVenues } from '../hooks/useSupabaseData';
 import { COUNTRIES } from '../data/locations';
 import statesData from '../data/states.json';
@@ -158,7 +158,7 @@ export const Venues: React.FC = () => {
       console.log('🔍 Possible slugs:', possibleSlugs);
 
       // First, check if we can access the bucket at all
-      const { data: bucketTest, error: bucketError } = await supabase.storage
+      const { data: bucketTest, error: bucketError } = await apiClient.storage
         .from('venue-photos')
         .list('', { limit: 1 });
 
@@ -176,7 +176,7 @@ export const Venues: React.FC = () => {
       for (const trySlug of possibleSlugs) {
         console.log(`🔍 Trying slug: ${trySlug}`);
 
-        const { data: tryFiles, error: tryError } = await supabase.storage
+        const { data: tryFiles, error: tryError } = await apiClient.storage
           .from('venue-photos')
           .list(trySlug);
 
@@ -194,7 +194,7 @@ export const Venues: React.FC = () => {
       if (!photoFiles) {
         console.log('🔍 No photos found with any slug, checking all folders...');
 
-        const { data: allFolders, error: folderError } = await supabase.storage
+        const { data: allFolders, error: folderError } = await apiClient.storage
           .from('venue-photos')
           .list('', { limit: 100 });
 
@@ -209,7 +209,7 @@ export const Venues: React.FC = () => {
 
           if (possibleMatch) {
             console.log('🎯 Found fuzzy matching folder:', possibleMatch.name);
-            const { data: matchedFiles, error: matchedError } = await supabase.storage
+            const { data: matchedFiles, error: matchedError } = await apiClient.storage
               .from('venue-photos')
               .list(possibleMatch.name);
 
@@ -232,7 +232,7 @@ export const Venues: React.FC = () => {
         const filePath = `${foundSlug}/${file.name}`;
 
         // Get signed URL since bucket is not public
-        const { data: signedUrl, error: signedError } = await supabase.storage
+        const { data: signedUrl, error: signedError } = await apiClient.storage
           .from('venue-photos')
           .createSignedUrl(filePath, 3600); // 1 hour expiry
 
@@ -283,7 +283,7 @@ export const Venues: React.FC = () => {
       const slug = slugifyVenue(venueName);
 
       // List all files in the venue-documents bucket for this venue
-      const { data: docFiles, error: docError } = await supabase.storage
+      const { data: docFiles, error: docError } = await apiClient.storage
         .from('venue-documents')
         .list(slug);
 
@@ -300,7 +300,7 @@ export const Venues: React.FC = () => {
         const filePath = `${slug}/${file.name}`;
 
         // Get signed URL since bucket is likely not public
-        const { data: signedUrl, error: signedError } = await supabase.storage
+        const { data: signedUrl, error: signedError } = await apiClient.storage
           .from('venue-documents')
           .createSignedUrl(filePath, 3600); // 1 hour expiry
 
@@ -406,7 +406,7 @@ export const Venues: React.FC = () => {
 
     try {
       // Check for duplicate venue names
-      let nameQuery = supabase
+      let nameQuery = apiClient
         .from('venues')
         .select('id, name')
         .ilike('name', editFormData.name.trim());
@@ -427,7 +427,7 @@ export const Venues: React.FC = () => {
       }
 
       // Check for duplicate addresses
-      let addressQuery = supabase
+      let addressQuery = apiClient
         .from('venues')
         .select('id, name, address_line1')
         .ilike('address_line1', editFormData.addressLine1?.trim() || '');
@@ -580,9 +580,9 @@ export const Venues: React.FC = () => {
 
   // Helper: upload a file to a storage bucket and return public URL
   async function uploadToBucket(bucket: string, path: string, file: File): Promise<{ url: string }> {
-    const { data: up, error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    const { data: up, error: upErr } = await apiClient.storage.from(bucket).upload(path, file, { upsert: true });
     if (upErr) throw upErr;
-    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(up.path);
+    const { data: pub } = apiClient.storage.from(bucket).getPublicUrl(up.path);
     return { url: pub.publicUrl };
   }
 
@@ -705,7 +705,7 @@ export const Venues: React.FC = () => {
 
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await apiClient
           .from('venues')
           .update(updateData)
           .eq('id', editFormData.id)
@@ -740,7 +740,7 @@ export const Venues: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (selectedVenue) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('venues')
         .delete()
         .eq('id', selectedVenue.id);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { validateEmail, validatePhone, validatePinCode, validateRequiredText, validateNumber } from '../utils/validation';
 import {
   Save,
@@ -529,13 +529,13 @@ export const CreateEvent: React.FC = () => {
         const fileExt = file.name.split('.').pop() || 'jpg';
         const fileName = `flyer_${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${fileExt}`;
         const filePath = `event-images/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, file);
+        const { error: uploadError } = await apiClient.storage.from('event-images').upload(filePath, file);
         if (uploadError) {
           console.error('❌ Flyer upload failed:', uploadError);
           showNotification('Flyer upload failed: ' + uploadError.message, 'error');
           return null;
         }
-        const { data: urlData } = supabase.storage.from('event-images').getPublicUrl(filePath);
+        const { data: urlData } = apiClient.storage.from('event-images').getPublicUrl(filePath);
         return urlData.publicUrl;
       };
 
@@ -568,7 +568,7 @@ export const CreateEvent: React.FC = () => {
 
           console.log('📤 Attempting layout image upload:', filePath);
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { data: uploadData, error: uploadError } = await apiClient.storage
             .from('event-images')
             .upload(filePath, formData.layoutImage);
 
@@ -578,7 +578,7 @@ export const CreateEvent: React.FC = () => {
             layoutImageUrl = formData.layoutImageUrl || '';
           } else {
             console.log('✅ Layout image upload successful:', uploadData.path);
-            const { data: urlData } = supabase.storage
+            const { data: urlData } = apiClient.storage
               .from('event-images')
               .getPublicUrl(filePath);
             layoutImageUrl = urlData.publicUrl;
@@ -637,7 +637,7 @@ export const CreateEvent: React.FC = () => {
 
       console.log('📤 Inserting event data:', insertData);
       
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('events')
         .insert(insertData)
         .select()

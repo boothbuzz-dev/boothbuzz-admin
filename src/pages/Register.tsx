@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { Button } from '../components/UI/Button';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -17,7 +17,7 @@ export const Register: React.FC = () => {
 
   useEffect(() => {
     if (eventId) {
-      supabase
+      apiClient
         .from('events')
         .select('*')
         .eq('id', eventId)
@@ -44,7 +44,7 @@ export const Register: React.FC = () => {
     }
     setSubmitting(true);
     try {
-      const { data: rows, error: exErr } = await supabase
+      const { data: rows, error: exErr } = await apiClient
         .from('exhibitors')
         .select('id')
         .eq('email', email)
@@ -62,7 +62,7 @@ export const Register: React.FC = () => {
         return;
       }
 
-      const { data: existing } = await supabase
+      const { data: existing } = await apiClient
         .from('event_registrations')
         .select('id')
         .eq('event_id', event.id)
@@ -74,7 +74,7 @@ export const Register: React.FC = () => {
         return;
       }
 
-      const { error: insErr } = await supabase.from('event_registrations').insert({
+      const { error: insErr } = await apiClient.from('event_registrations').insert({
         event_id: event.id,
         exhibitor_id: exhibitor.id,
         status: 'interested',

@@ -5,7 +5,7 @@ import { Button } from '../components/UI/Button';
 import { Badge } from '../components/UI/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../lib/api';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 interface Organization {
   id: string;
@@ -38,7 +38,7 @@ export const Organizations: React.FC = () => {
 
   const fetchOrganizations = async () => {
     setLoading(true);
-    const { data: orgData, error: orgErr } = await supabase
+    const { data: orgData, error: orgErr } = await apiClient
       .from('organizations')
       .select('id, name, slug, status, created_at')
       .order('created_at', { ascending: false });
@@ -55,7 +55,7 @@ export const Organizations: React.FC = () => {
       setLoading(false);
       return;
     }
-    const { data: adminData } = await supabase
+    const { data: adminData } = await apiClient
       .from('users')
       .select('organization_id, name, email')
       .eq('role', 'admin')
@@ -135,7 +135,7 @@ export const Organizations: React.FC = () => {
     setError(null);
     setSubmitting(true);
     try {
-      const { error: err } = await supabase
+      const { error: err } = await apiClient
         .from('organizations')
         .update({ name: editForm.name.trim(), status: editForm.status, updated_at: new Date().toISOString() })
         .eq('id', editOrg.id);
@@ -154,13 +154,13 @@ export const Organizations: React.FC = () => {
     setError(null);
     setSubmitting(true);
     try {
-      const { count } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('organization_id', deleteOrg.id);
+      const { count } = await apiClient.from('users').select('*', { count: 'exact', head: true }).eq('organization_id', deleteOrg.id);
       if (count && count > 0) {
         setError(`Cannot delete: ${count} user(s) are linked to this organization. Reassign them to another organization first.`);
         setSubmitting(false);
         return;
       }
-      const { error: err } = await supabase.from('organizations').delete().eq('id', deleteOrg.id);
+      const { error: err } = await apiClient.from('organizations').delete().eq('id', deleteOrg.id);
       if (err) throw err;
       setSuccess('Organization deleted.');
       setDeleteOrg(null);

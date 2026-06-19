@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { ArrowLeft, Image, CheckCircle } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
@@ -60,7 +60,7 @@ export const EditAdvertisement: React.FC = () => {
       setLoading(false);
       return;
     }
-    supabase
+    apiClient
       .from('advertisements')
       .select('*')
       .eq('id', id)
@@ -113,7 +113,7 @@ export const EditAdvertisement: React.FC = () => {
     setErrors({});
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('advertisements')
         .update({
           title: formData.title.trim(),

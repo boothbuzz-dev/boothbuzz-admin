@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Event, Venue, Vendor, Exhibitor } from '../types';
 import { parseExhibitorImageUrls } from '../utils/exhibitorPortfolio';
@@ -29,7 +29,7 @@ export function useSupabaseData<T>(
     try {
       setLoading(true);
 
-      let query = supabase
+      let query = apiClient
         .from(table)
         .select(select);
 
@@ -513,7 +513,7 @@ export const useCampaigns = (opts?: { skipOrgFilter?: boolean }) => {
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      let query = apiClient
         .from('campaigns')
         .select('*, campaign_ads(advertisement_id)')
         .order('created_at', { ascending: false });

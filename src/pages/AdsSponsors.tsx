@@ -26,7 +26,7 @@ import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/UI/Table';
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 interface Advertisement {
   id: string;
@@ -200,7 +200,7 @@ export const AdsSponsors: React.FC = () => {
     };
 
     if (isEditingWebsiteAd && websiteAdForm.id) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('website_ads')
         .update(payload)
         .eq('id', websiteAdForm.id);
@@ -209,7 +209,7 @@ export const AdsSponsors: React.FC = () => {
         return;
       }
     } else {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('website_ads')
         .insert(payload);
       if (error) {
@@ -226,7 +226,7 @@ export const AdsSponsors: React.FC = () => {
     if (!window.confirm('Delete this website ad?')) {
       return;
     }
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('website_ads')
       .delete()
       .eq('id', id)

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import {
   ArrowLeft,
   Building2,
@@ -93,7 +93,7 @@ export const AddSponsor: React.FC = () => {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const { error } = await supabase.from('sponsors').insert({
+      const { error } = await apiClient.from('sponsors').insert({
         organization_id: user?.organizationId ?? null,
         company_name: formData.companyName.trim(),
         contact_person: formData.contactPerson.trim(),

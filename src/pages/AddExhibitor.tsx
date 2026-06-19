@@ -36,7 +36,7 @@ import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
 import { Badge } from '../components/UI/Badge';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { uploadExhibitorPublicImage } from '../lib/exhibitorStorage';
 import { exhibitorImageUrlsColumnValue } from '../lib/exhibitorImageDb';
 import { getDefaultExhibitorProfileUrl } from '../constants/exhibitorDefaultProfile';
@@ -231,7 +231,7 @@ export const AddExhibitor: React.FC = () => {
 
   React.useEffect(() => {
     const loadEventTaxonomy = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('event_categories')
         .select('name, sort_order, event_subcategories(name, sort_order)')
         .order('sort_order', { ascending: true });
@@ -579,7 +579,7 @@ export const AddExhibitor: React.FC = () => {
       const fileExt = file.name.split('.').pop();
       const filePath = `${fileName}.${fileExt}`;
 
-      const { data, error } = await supabase.storage
+      const { data, error } = await apiClient.storage
         .from('exhibitor-documents')
         .upload(filePath, file, {
           upsert: true
@@ -591,7 +591,7 @@ export const AddExhibitor: React.FC = () => {
       }
 
       // Get signed URL since bucket is not public
-      const { data: signedUrl, error: signedError } = await supabase.storage
+      const { data: signedUrl, error: signedError } = await apiClient.storage
         .from('exhibitor-documents')
         .createSignedUrl(filePath, 3600); // 1 hour expiry
 
@@ -778,7 +778,7 @@ export const AddExhibitor: React.FC = () => {
         payment_status: formData.paymentStatus
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('exhibitors')
         .insert(insertData)
         .select()

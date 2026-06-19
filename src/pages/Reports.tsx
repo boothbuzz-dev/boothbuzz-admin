@@ -23,7 +23,7 @@ import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/UI/Table';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useReportData, getDateRangeBounds } from '../hooks/useReportData';
 import { useMemo } from 'react';
 import {
@@ -117,7 +117,7 @@ export const Reports: React.FC = () => {
 
   useEffect(() => {
     if (isSuperAdmin) {
-      supabase
+      apiClient
         .from('organizations')
         .select('id, name')
         .order('name')

@@ -5,6 +5,7 @@ import { Layout } from './components/Layout/Layout';
 import { AutoLogoutWarning } from './components/AutoLogoutWarning';
 
 import { Login } from './pages/Login';
+import { ChangePassword } from './pages/ChangePassword';
 import { Dashboard } from './pages/Dashboard';
 import { Organizations } from './pages/Organizations';
 import { Users } from './pages/Users';
@@ -33,10 +34,14 @@ import { Testimonials } from './pages/Testimonials';
 import { BRDDownload } from './pages/BRDDownload';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();  
+  const { user, mustChangePassword } = useAuth();
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (mustChangePassword) {
+    return <Navigate to="/change-password" replace />;
   }
 
   return <Layout>{children}</Layout>;
@@ -59,6 +64,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />

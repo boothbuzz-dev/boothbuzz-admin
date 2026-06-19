@@ -20,7 +20,7 @@ import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 
 interface CalendarEvent {
@@ -316,7 +316,7 @@ export const Calendar: React.FC = () => {
       
       // Now fetch with the correct column names based on the actual table structure
       // Super Admin sees all events; other users see only their organization's events
-      let query = supabase
+      let query = apiClient
         .from('events')
         .select(`
           id,
@@ -401,7 +401,7 @@ export const Calendar: React.FC = () => {
   // Create new event
   const handleCreateEvent = async (eventData: Omit<CalendarEvent, 'id' | 'color'>) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('events')
         .insert([{
           ...eventData,
@@ -434,7 +434,7 @@ export const Calendar: React.FC = () => {
     if (!eventModal.event) return;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('events')
         .update({
           ...eventData,
@@ -464,7 +464,7 @@ export const Calendar: React.FC = () => {
   // Delete event
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('events')
         .delete()
         .eq('id', eventId);

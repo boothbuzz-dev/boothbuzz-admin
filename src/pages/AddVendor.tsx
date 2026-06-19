@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { 
   Save, 
   ArrowLeft, 
@@ -139,7 +139,7 @@ export const AddVendor: React.FC = () => {
 
     try {
       // Insert vendor into Supabase
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('vendors')
         .insert({
           name: formData.name,

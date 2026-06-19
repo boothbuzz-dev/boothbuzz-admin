@@ -10,7 +10,7 @@ import {
   useVendorSubscriptionPlans,
   useVendorSubscriptions,
 } from '../hooks/useSupabaseData';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 type TabId = 'plans' | 'invoices' | 'subscriptions';
 
@@ -196,7 +196,7 @@ export const Billing: React.FC = () => {
         sponsors_ads: planForm.areaSponsorsAds.trim(),
       },
     };
-    const { error } = await supabase
+    const { error } = await apiClient
       .from('vendor_subscription_plans')
       .update({
         name: planForm.name.trim(),

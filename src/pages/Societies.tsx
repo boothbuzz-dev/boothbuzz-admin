@@ -7,7 +7,7 @@ import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { Society } from '../types';
 import { useSocieties } from '../hooks/useSupabaseData';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 
 export const Societies: React.FC = () => {
   const { societies, loading, error, refetch } = useSocieties();
@@ -56,7 +56,7 @@ export const Societies: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (editFormData) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('societies')
         .update({
           name: editFormData.name,
@@ -82,7 +82,7 @@ export const Societies: React.FC = () => {
 
   const handleConfirmDelete = async () => {
     if (selectedSociety) {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('societies')
         .delete()
         .eq('id', selectedSociety.id);

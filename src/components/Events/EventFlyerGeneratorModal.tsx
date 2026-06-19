@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, Download, Sparkles, Loader2, ImagePlus } from 'lucide-react';
 import { Button } from '../UI/Button';
 import { Event } from '../../types';
-import { generateEventFlyer, supabase } from '../../lib/supabase';
+import { generateEventFlyer, apiClient } from '../../lib/apiClient';
 
 type Props = {
   isOpen: boolean;
@@ -115,7 +115,7 @@ export const EventFlyerGeneratorModal: React.FC<Props> = ({ isOpen, event, onClo
   useEffect(() => {
     if (!isOpen || !event?.organizationId) return;
     let cancelled = false;
-    supabase
+    apiClient
       .from('organizations')
       .select('name')
       .eq('id', event.organizationId)
@@ -137,7 +137,7 @@ export const EventFlyerGeneratorModal: React.FC<Props> = ({ isOpen, event, onClo
     if (!isOpen || !eventId) return;
     let cancelled = false;
     setLoadingSponsors(true);
-    supabase
+    apiClient
       .from('event_sponsors')
       .select('role, sponsors(company_name)')
       .eq('event_id', eventId)
@@ -238,7 +238,7 @@ export const EventFlyerGeneratorModal: React.FC<Props> = ({ isOpen, event, onClo
         blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/webp' ? 'webp' : 'png';
       const safeTitle = (event.title || 'event').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
       const filePath = `event-images/${event.id}/ai-flyer-${safeTitle}-${Date.now()}.${extension}`;
-      const { error: uploadError } = await supabase.storage.from('event-images').upload(filePath, blob, {
+      const { error: uploadError } = await apiClient.storage.from('event-images').upload(filePath, blob, {
         contentType: blob.type || 'image/png',
         upsert: false,
       });
@@ -247,7 +247,7 @@ export const EventFlyerGeneratorModal: React.FC<Props> = ({ isOpen, event, onClo
         throw new Error(uploadError.message || 'Failed to upload flyer image.');
       }
 
-      const { data: publicUrlData } = supabase.storage.from('event-images').getPublicUrl(filePath);
+      const { data: publicUrlData } = apiClient.storage.from('event-images').getPublicUrl(filePath);
       const publicUrl = publicUrlData?.publicUrl;
       if (!publicUrl) {
         throw new Error('Could not generate public URL for uploaded flyer.');
@@ -255,7 +255,7 @@ export const EventFlyerGeneratorModal: React.FC<Props> = ({ isOpen, event, onClo
 
       const existing = parseEventImages(event.eventImageUrl);
       const updatedImages = [publicUrl, ...existing.filter((url) => url !== publicUrl)];
-      const { error: updateError } = await supabase
+      const { error: updateError } = await apiClient
         .from('events')
         .update({ event_image_url: JSON.stringify(updatedImages) })
         .eq('id', event.id);

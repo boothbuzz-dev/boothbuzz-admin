@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Save, 
@@ -332,7 +332,7 @@ export const CreateCampaign: React.FC = () => {
         ? formData.targeting.geographic.cities.join(', ')
         : `Age ${formData.targeting.demographics.ageMin}-${formData.targeting.demographics.ageMax}`;
 
-      const { data: campaignRow, error: campaignError } = await supabase
+      const { data: campaignRow, error: campaignError } = await apiClient
         .from('campaigns')
         .insert({
           organization_id: organizationId,
@@ -359,7 +359,7 @@ export const CreateCampaign: React.FC = () => {
       for (const ad of formData.ads) {
         const adType = ad.type === 'native' ? 'banner' : ad.type;
         const placement = (ad.placement?.[0] && PLACEMENTS[ad.placement[0]]) ? PLACEMENTS[ad.placement[0]] : 'header';
-        const { data: adRow, error: adError } = await supabase
+        const { data: adRow, error: adError } = await apiClient
           .from('advertisements')
           .insert({
             organization_id: organizationId,
@@ -387,7 +387,7 @@ export const CreateCampaign: React.FC = () => {
       }
 
       if (advertisementIds.length > 0) {
-        const { error: linkError } = await supabase
+        const { error: linkError } = await apiClient
           .from('campaign_ads')
           .insert(advertisementIds.map(advertisement_id => ({ campaign_id: campaignId, advertisement_id })));
 

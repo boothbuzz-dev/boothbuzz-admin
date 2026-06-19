@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { apiClient } from '../lib/apiClient';
 import { ArrowLeft, Megaphone, Calendar, DollarSign, CheckCircle } from 'lucide-react';
 import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Button } from '../components/UI/Button';
@@ -45,7 +45,7 @@ export const EditCampaign: React.FC = () => {
       return;
     }
     (async () => {
-      const { data: campaign, error: campaignError } = await supabase
+      const { data: campaign, error: campaignError } = await apiClient
         .from('campaigns')
         .select('*, campaign_ads(advertisement_id)')
         .eq('id', id)
@@ -97,7 +97,7 @@ export const EditCampaign: React.FC = () => {
     setErrors({});
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('campaigns')
         .update({
           name: formData.name.trim(),
