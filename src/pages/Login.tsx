@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/newlogo.png';
@@ -10,6 +10,7 @@ export const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, user } = useAuth();
+  const navigate = useNavigate();
 
   if (user?.mustChangePassword) {
     return <Navigate to="/change-password" replace />;
@@ -34,11 +35,11 @@ export const Login: React.FC = () => {
       const result = await login(email, password);
 
       if (result.mustChangePassword) {
-        window.location.replace('/change-password');
+        navigate('/change-password', { replace: true });
         return;
       }
 
-      window.location.replace('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err?.message || 'Login failed. Please try again.');

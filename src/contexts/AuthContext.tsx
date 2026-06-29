@@ -89,10 +89,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw new Error(error.message);
     if (!data?.user) throw new Error('Login failed');
 
-    const u = toUser(data.user);
+    const { data: me, error: meError } = await getMe();
+    if (meError || !me) {
+      throw new Error(meError?.message ?? 'Session could not be established. Ensure login returns a token field.');
+    }
+
+    const u = toUser(me);
     setUser(u);
-    setMustChangePassword(Boolean(data.mustChangePassword));
-    return { mustChangePassword: Boolean(data.mustChangePassword) };
+    setMustChangePassword(Boolean(me.mustChangePassword ?? data.mustChangePassword));
+    return { mustChangePassword: Boolean(me.mustChangePassword ?? data.mustChangePassword) };
   };
 
   const logout = async () => {

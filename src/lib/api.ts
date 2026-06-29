@@ -1,7 +1,17 @@
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api/v1';
+const AUTH_TOKEN_KEY = 'boothbuzz_admin_session';
 
 export function getApiUrl() {
   return API_URL.replace(/\/$/, '');
+}
+
+export function setAuthToken(token: string | null) {
+  if (token) sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  else sessionStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+export function getAuthToken(): string | null {
+  return sessionStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 type ApiError = { error: string };
@@ -21,17 +31,22 @@ export async function apiFetch<T>(
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null; status: number }> {
   try {
+    const token = getAuthToken();
     const res = await fetch(`${getApiUrl()}${path}`, {
       credentials: 'include',
       ...init,
       headers: {
         ...(init.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
     });
     if (res.status === 204) return { data: null, error: null, status: res.status };
     const json = await parseJson<T | ApiError>(res);
     if (!res.ok) {
+      if (res.status === 401 && !path.includes('/auth/login')) {
+        setAuthToken(null);
+      }
       const msg = (json as ApiError)?.error ?? res.statusText;
       return { data: null, error: { message: msg }, status: res.status };
     }

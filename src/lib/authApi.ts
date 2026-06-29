@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch, setAuthToken } from './api';
 
 export type AuthUser = {
   id: string;
@@ -10,11 +10,29 @@ export type AuthUser = {
   mustChangePassword?: boolean;
 };
 
+type LoginResponse = {
+  mustChangePassword: boolean;
+  user: AuthUser;
+  token?: string;
+  accessToken?: string;
+  access_token?: string;
+};
+
+function pickAuthToken(data: LoginResponse | null | undefined): string | null {
+  if (!data) return null;
+  return data.token ?? data.accessToken ?? data.access_token ?? null;
+}
+
 export async function login(email: string, password: string) {
-  return apiFetch<{ mustChangePassword: boolean; user: AuthUser }>('/admin/auth/login', {
+  const result = await apiFetch<LoginResponse>('/admin/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+  if (result.error) return result;
+
+  const token = pickAuthToken(result.data);
+  if (token) setAuthToken(token);
+  return result;
 }
 
 export async function getMe() {
@@ -22,12 +40,20 @@ export async function getMe() {
 }
 
 export async function logout() {
-  return apiFetch('/admin/auth/logout', { method: 'POST' });
+  const result = await apiFetch('/admin/auth/logout', { method: 'POST' });
+  setAuthToken(null);
+  return result;
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {
-  return apiFetch<{ ok: boolean; user: AuthUser }>('/admin/auth/change-password', {
-    method: 'POST',
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
+  const result = await apiFetch<{ ok: boolean; user: AuthUser; token?: string; accessToken?: string }>(
+    '/admin/auth/change-password',
+    {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    },
+  );
+  const token = result.data?.token ?? result.data?.accessToken ?? null;
+  if (token) setAuthToken(token);
+  return result;
 }

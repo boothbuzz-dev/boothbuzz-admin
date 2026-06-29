@@ -33,7 +33,7 @@ export const AutoLogoutWarning: React.FC = () => {
     return null;
   }
 
-  const minutes = Math.floor(remainingTime / 60000);
+  const minutes = Math.floor(remainingTime / 150000);
   const seconds = Math.floor((remainingTime % 60000) / 1000);
 
   return (

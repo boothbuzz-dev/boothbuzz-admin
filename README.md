@@ -10,7 +10,9 @@ npm install
 npm run dev
 ```
 
-Runs at http://localhost:5173 — requires API at `VITE_API_URL` (default http://localhost:3001).
+Runs at http://localhost:5173 — set `VITE_API_URL` to your API base, e.g. `http://172.31.3.44:3001/api/v1`.
+
+Login calls `POST …/admin/auth/login`; the API must return a `token` in the JSON (Bearer auth). Cookies alone do not work cross-origin from the browser.
 
 ## Login (seed)
 
