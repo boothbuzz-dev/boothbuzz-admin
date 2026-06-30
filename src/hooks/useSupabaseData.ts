@@ -327,14 +327,14 @@ export const useExhibitors = () => {
     lastName: exhibitor.last_name || '',
     
     // Company Information
-    companyName: exhibitor.company_name,
+    companyName: exhibitor.company_name || exhibitor.companyName || '',
     companyDescription: exhibitor.company_description,
     establishedYear: exhibitor.established_year,
     companySize: exhibitor.company_size,
     website: exhibitor.website,
     
     // Contact Information
-    contactPerson: exhibitor.contact_person,
+    contactPerson: exhibitor.contact_person || exhibitor.contactPerson || '',
     designation: exhibitor.designation,
     email: exhibitor.email,
     phone: exhibitor.phone,

@@ -165,6 +165,58 @@ function resolveEditPersonalNames(exhibitor: {
   return { firstName: '', lastName: '' };
 }
 
+function normalizeSearchText(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function exhibitorMatchesSearch(
+  exhibitor: {
+    companyName?: string | null;
+    contactPerson?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    alternatePhone?: string | null;
+    city?: string | null;
+    state?: string | null;
+    category?: string | null;
+    subCategory?: string | null;
+    panNumber?: string | null;
+    gstNumber?: string | null;
+    website?: string | null;
+  },
+  query: string,
+): boolean {
+  const term = normalizeSearchText(query);
+  if (!term) return true;
+
+  const fullName = [exhibitor.firstName, exhibitor.lastName].map(normalizeSearchText).filter(Boolean).join(' ');
+  const haystack = [
+    exhibitor.companyName,
+    exhibitor.contactPerson,
+    fullName,
+    exhibitor.firstName,
+    exhibitor.lastName,
+    exhibitor.email,
+    exhibitor.phone,
+    exhibitor.alternatePhone,
+    exhibitor.city,
+    exhibitor.state,
+    exhibitor.category,
+    exhibitor.subCategory,
+    exhibitor.panNumber,
+    exhibitor.gstNumber,
+    exhibitor.website,
+  ]
+    .map(normalizeSearchText)
+    .filter(Boolean)
+    .join(' ');
+
+  const words = term.split(/\s+/).filter(Boolean);
+  return words.every((word) => haystack.includes(word));
+}
+
 /** Comma-separated sub_category: trim segments, drop empties, dedupe (order preserved). */
 function normalizeSubCategoriesCsv(raw: string | null | undefined): string {
   const seen = new Set<string>();
@@ -452,10 +504,7 @@ export const Exhibitors: React.FC = () => {
       .filter(Boolean);
     const matchesSubCategory = filters.subCategory === 'all' || exhibitorSubCategories.includes(filters.subCategory);
     const matchesCity = filters.city === 'all' || exhibitor.city === filters.city;
-    const matchesSearch = filters.search === '' || 
-      exhibitor.companyName.toLowerCase().includes(filters.search.toLowerCase()) ||
-      exhibitor.contactPerson?.toLowerCase().includes(filters.search.toLowerCase()) ||
-      exhibitor.email?.toLowerCase().includes(filters.search.toLowerCase());
+    const matchesSearch = exhibitorMatchesSearch(exhibitor, filters.search);
 
     return matchesStatus && matchesPayment && matchesCategory && matchesSubCategory && matchesCity && matchesSearch;
   });
