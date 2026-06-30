@@ -31,7 +31,11 @@ function enrichUserRow(row: Row): Row {
 }
 
 class QueryBuilder {
-  private filters: Array<{ col: string; val: unknown; op: 'eq' | 'in' }> = [];
+  private filters: Array<{
+    col: string;
+    val: unknown;
+    op: 'eq' | 'in' | 'gte' | 'lte' | 'gt' | 'lt' | 'neq' | 'ilike';
+  }> = [];
   private orderCol?: string;
   private orderAsc = true;
   private limitN?: number;
@@ -55,6 +59,36 @@ class QueryBuilder {
 
   in(col: string, vals: unknown[]) {
     this.filters.push({ col, val: vals, op: 'in' });
+    return this;
+  }
+
+  gte(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'gte' });
+    return this;
+  }
+
+  lte(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'lte' });
+    return this;
+  }
+
+  gt(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'gt' });
+    return this;
+  }
+
+  lt(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'lt' });
+    return this;
+  }
+
+  neq(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'neq' });
+    return this;
+  }
+
+  ilike(col: string, val: unknown) {
+    this.filters.push({ col, val, op: 'ilike' });
     return this;
   }
 
@@ -116,14 +150,42 @@ class QueryBuilder {
     }
   }
 
+  private getRowValue(row: Row, col: string): unknown {
+    return row[col] ?? row[camelToSnakeKey(col)];
+  }
+
+  private compareValues(a: unknown, b: unknown): number {
+    if (a == null && b == null) return 0;
+    if (a == null) return -1;
+    if (b == null) return 1;
+    if (a === b) return 0;
+    return a > b ? 1 : -1;
+  }
+
   private applyFilters(rows: Row[]): Row[] {
     let result = [...rows];
     for (const f of this.filters) {
       if (f.op === 'eq') {
-        result = result.filter((r) => r[f.col] === f.val || r[camelToSnakeKey(f.col)] === f.val);
+        result = result.filter((r) => this.getRowValue(r, f.col) === f.val);
       } else if (f.op === 'in') {
         const vals = f.val as unknown[];
-        result = result.filter((r) => vals.includes(r[f.col]) || vals.includes(r[camelToSnakeKey(f.col)]));
+        result = result.filter((r) => vals.includes(this.getRowValue(r, f.col)));
+      } else if (f.op === 'gte') {
+        result = result.filter((r) => this.compareValues(this.getRowValue(r, f.col), f.val) >= 0);
+      } else if (f.op === 'lte') {
+        result = result.filter((r) => this.compareValues(this.getRowValue(r, f.col), f.val) <= 0);
+      } else if (f.op === 'gt') {
+        result = result.filter((r) => this.compareValues(this.getRowValue(r, f.col), f.val) > 0);
+      } else if (f.op === 'lt') {
+        result = result.filter((r) => this.compareValues(this.getRowValue(r, f.col), f.val) < 0);
+      } else if (f.op === 'neq') {
+        result = result.filter((r) => this.getRowValue(r, f.col) !== f.val);
+      } else if (f.op === 'ilike') {
+        const pattern = String(f.val ?? '').toLowerCase();
+        result = result.filter((r) => {
+          const value = String(this.getRowValue(r, f.col) ?? '').toLowerCase();
+          return value === pattern || value.includes(pattern);
+        });
       }
     }
     return result;
