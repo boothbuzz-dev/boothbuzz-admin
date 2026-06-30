@@ -36,6 +36,7 @@ import { Card, CardHeader, CardContent } from '../components/UI/Card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/UI/Table';
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
+import { csvFilename, downloadCsv } from '../lib/exportCsv';
 
 interface Product {
   id: string;
@@ -435,7 +436,62 @@ export const ProductsShowcase: React.FC = () => {
     }
   };
 
+  const exportProductsToCsv = (items: Product[]) => {
+    return downloadCsv(
+      csvFilename('products-catalog-export'),
+      [
+        'Name',
+        'Category',
+        'Subcategory',
+        'Status',
+        'Priority',
+        'Availability',
+        'Price Min',
+        'Price Max',
+        'Currency',
+        'Price Type',
+        'Views',
+        'Inquiries',
+        'Rating',
+        'Tags',
+        'Launch Date',
+      ],
+      items.map((product) => [
+        product.name,
+        product.category,
+        product.subcategory,
+        product.status,
+        product.priority,
+        product.availability,
+        product.price.min,
+        product.price.max,
+        product.price.currency,
+        product.price.type,
+        product.analytics.views,
+        product.analytics.inquiries,
+        product.socialProof.rating,
+        product.tags.join('; '),
+        product.launchDate,
+      ]),
+    );
+  };
+
+  const handleExport = () => {
+    const items =
+      selectedProducts.length > 0
+        ? filteredProducts.filter((p) => selectedProducts.includes(p.id))
+        : filteredProducts;
+    exportProductsToCsv(items);
+  };
+
   const handleBulkAction = (action: string) => {
+    if (action === 'export') {
+      const toExport = filteredProducts.filter((p) => selectedProducts.includes(p.id));
+      exportProductsToCsv(toExport);
+      setSelectedProducts([]);
+      return;
+    }
+
     console.log(`Bulk action: ${action} for products:`, selectedProducts);
     setSelectedProducts([]);
   };
@@ -468,7 +524,12 @@ export const ProductsShowcase: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          <Button variant="outline" className="flex items-center space-x-2 w-full sm:w-auto justify-center">
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2 w-full sm:w-auto justify-center"
+            onClick={handleExport}
+            disabled={filteredProducts.length === 0}
+          >
             <Download className="h-4 w-4" />
             <span>Export Catalog</span>
           </Button>

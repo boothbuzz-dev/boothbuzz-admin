@@ -39,6 +39,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useExhibitors } from '../hooks/useSupabaseData';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/apiClient';
+import { csvFilename, downloadCsv } from '../lib/exportCsv';
 import { uploadExhibitorPublicImage } from '../lib/exhibitorStorage';
 import {
   exhibitorPortfolioDisplayUrl,
@@ -362,6 +363,44 @@ export const Exhibitors: React.FC = () => {
     city: 'all'
   });
 
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full ${
+      type === 'success' ? 'bg-green-500 text-white' :
+      type === 'error' ? 'bg-red-500 text-white' :
+      'bg-blue-500 text-white'
+    }`;
+
+    notification.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <span class="mr-2">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+          <span>${message}</span>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+          ✕
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.classList.remove('translate-x-full');
+    }, 100);
+
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (notification.parentElement) {
+            notification.remove();
+          }
+        }, 300);
+      }
+    }, 5000);
+  };
+
   React.useEffect(() => {
     const loadEventTaxonomy = async () => {
       const { data, error } = await apiClient
@@ -482,9 +521,69 @@ export const Exhibitors: React.FC = () => {
     }
   };
 
+  const exportExhibitorsToCsv = (items: typeof exhibitors) => {
+    const headers = [
+      'Company Name',
+      'Contact Person',
+      'Email',
+      'Phone',
+      'City',
+      'State',
+      'Category',
+      'Sub Category',
+      'Status',
+      'Payment Status',
+      'Booth Size',
+      'Registration Date',
+      'Website',
+    ];
+
+    const rows = items.map((exhibitor) => [
+      exhibitor.companyName || '',
+      exhibitor.contactPerson ||
+        `${exhibitor.firstName || ''} ${exhibitor.lastName || ''}`.trim(),
+      exhibitor.email || '',
+      exhibitor.phone || '',
+      exhibitor.city || '',
+      exhibitor.state || '',
+      exhibitor.category || '',
+      exhibitor.subCategory || '',
+      exhibitor.status || '',
+      exhibitor.paymentStatus || '',
+      exhibitor.boothSize || '',
+      exhibitor.registrationDate
+        ? new Date(exhibitor.registrationDate).toLocaleDateString()
+        : '',
+      exhibitor.website || '',
+    ]);
+
+    const ok = downloadCsv(csvFilename('exhibitors-export'), headers, rows);
+    if (!ok) {
+      showNotification('No exhibitor data to export.', 'info');
+    }
+    return ok;
+  };
+
+  const handleExport = () => {
+    if (exportExhibitorsToCsv(filteredExhibitors)) {
+      showNotification(`Exported ${filteredExhibitors.length} exhibitor(s).`, 'success');
+    }
+  };
+
   const handleBulkAction = (action: string) => {
+    if (action === 'export') {
+      const toExport =
+        selectedExhibitors.length > 0
+          ? filteredExhibitors.filter((e) => selectedExhibitors.includes(e.id))
+          : filteredExhibitors;
+      if (exportExhibitorsToCsv(toExport)) {
+        showNotification(`Exported ${toExport.length} exhibitor(s).`, 'success');
+      }
+      setSelectedExhibitors([]);
+      return;
+    }
+
     console.log(`Bulk action: ${action} for exhibitors:`, selectedExhibitors);
-    // Implement bulk actions here
     setSelectedExhibitors([]);
   };
 
@@ -807,47 +906,6 @@ export const Exhibitors: React.FC = () => {
     }
   };
 
-  // Notification function
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-full ${
-      type === 'success' ? 'bg-green-500 text-white' :
-      type === 'error' ? 'bg-red-500 text-white' :
-      'bg-blue-500 text-white'
-    }`;
-    
-    notification.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <span class="mr-2">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
-          <span>${message}</span>
-        </div>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
-          ✕
-        </button>
-      </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-      notification.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => {
-          if (notification.parentElement) {
-            notification.remove();
-          }
-        }, 300);
-      }
-    }, 5000);
-  };
-
   const handleSendEmail = () => {
     // Simulate email sending
     showNotification('Email sent successfully!', 'success');
@@ -1131,10 +1189,15 @@ export const Exhibitors: React.FC = () => {
           <p className="text-gray-600">Manage exhibitor registrations, booth assignments, and payments</p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          {/* <Button variant="outline" className="flex items-center space-x-2 w-full sm:w-auto justify-center">
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2 w-full sm:w-auto justify-center"
+            onClick={handleExport}
+            disabled={filteredExhibitors.length === 0}
+          >
             <Download className="h-4 w-4" />
             <span>Export</span>
-          </Button> */}
+          </Button>
           <Link to="/exhibitors/add">
             <Button className="flex items-center space-x-2 w-full sm:w-auto justify-center">
               <Plus className="h-4 w-4" />

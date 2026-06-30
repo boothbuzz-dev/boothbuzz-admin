@@ -27,6 +27,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { Badge } from '../components/UI/Badge';
 import { Button } from '../components/UI/Button';
 import { apiClient } from '../lib/apiClient';
+import { csvFilename, downloadCsv } from '../lib/exportCsv';
 
 interface Advertisement {
   id: string;
@@ -242,6 +243,148 @@ export const AdsSponsors: React.FC = () => {
     refetchWebsiteAds();
   };
 
+  const handleExport = () => {
+    let ok = false;
+
+    switch (activeTab) {
+      case 'campaigns':
+        ok = downloadCsv(
+          csvFilename('campaigns-export'),
+          [
+            'Name',
+            'Description',
+            'Start Date',
+            'End Date',
+            'Budget',
+            'Spent',
+            'Status',
+            'Target Audience',
+            'Impressions',
+            'Clicks',
+            'CTR %',
+            'CPC',
+          ],
+          campaigns.map((campaign) => [
+            campaign.name,
+            campaign.description,
+            campaign.startDate,
+            campaign.endDate,
+            campaign.budget,
+            campaign.spent,
+            campaign.status,
+            campaign.targetAudience,
+            campaign.performance.impressions,
+            campaign.performance.clicks,
+            campaign.performance.ctr,
+            campaign.performance.cpc,
+          ]),
+        );
+        break;
+      case 'ads':
+        ok = downloadCsv(
+          csvFilename('advertisements-export'),
+          [
+            'Title',
+            'Advertiser',
+            'Type',
+            'Placement',
+            'Start Date',
+            'End Date',
+            'Budget',
+            'Spent',
+            'Impressions',
+            'Clicks',
+            'CTR %',
+            'CPM',
+            'Status',
+          ],
+          advertisements.map((ad) => [
+            ad.title,
+            ad.advertiser,
+            ad.type,
+            ad.placement,
+            ad.startDate,
+            ad.endDate,
+            ad.budget,
+            ad.spent,
+            ad.impressions,
+            ad.clicks,
+            ad.ctr,
+            ad.cpm,
+            ad.status,
+          ]),
+        );
+        break;
+      case 'website_ads':
+        ok = downloadCsv(
+          csvFilename('website-ads-export'),
+          [
+            'Title',
+            'Advertiser',
+            'Section',
+            'Type',
+            'Start Date',
+            'End Date',
+            'Priority',
+            'Impressions',
+            'Clicks',
+            'Status',
+            'Redirect URL',
+          ],
+          websiteAds.map((ad) => [
+            ad.title,
+            ad.advertiser,
+            ad.adSection,
+            ad.adType,
+            ad.startDate,
+            ad.endDate,
+            ad.priority,
+            ad.impressions,
+            ad.clicks,
+            ad.status,
+            ad.redirectUrl,
+          ]),
+        );
+        break;
+      default:
+        ok = downloadCsv(
+          csvFilename('sponsors-export'),
+          [
+            'Company',
+            'Contact Person',
+            'Email',
+            'Phone',
+            'Type',
+            'Level',
+            'Amount',
+            'Start Date',
+            'End Date',
+            'Events Sponsored',
+            'Status',
+            'Benefits',
+          ],
+          sponsors.map((sponsor) => [
+            sponsor.companyName,
+            sponsor.contactPerson,
+            sponsor.email,
+            sponsor.phone,
+            sponsor.sponsorshipType,
+            sponsor.sponsorshipLevel,
+            sponsor.amount,
+            sponsor.startDate,
+            sponsor.endDate,
+            sponsor.eventsSponsored,
+            sponsor.status,
+            sponsor.benefits.join('; '),
+          ]),
+        );
+    }
+
+    if (!ok) {
+      window.alert('No data available to export for the current tab.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -251,7 +394,11 @@ export const AdsSponsors: React.FC = () => {
           <p className="text-gray-600">Manage advertisements, sponsorships, and marketing campaigns</p>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-          <Button variant="outline" className="flex items-center space-x-2 w-full sm:w-auto justify-center">
+          <Button
+            variant="outline"
+            className="flex items-center space-x-2 w-full sm:w-auto justify-center"
+            onClick={handleExport}
+          >
             <Download className="h-4 w-4" />
             <span>Export Report</span>
           </Button>

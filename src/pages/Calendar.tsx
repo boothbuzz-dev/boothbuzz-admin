@@ -22,6 +22,7 @@ import { Button } from '../components/UI/Button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday } from 'date-fns';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../contexts/AuthContext';
+import { csvFilename, downloadCsv } from '../lib/exportCsv';
 
 interface CalendarEvent {
   id: string;
@@ -578,47 +579,19 @@ export const Calendar: React.FC = () => {
     .slice(0, 5);
 
   const handleExport = () => {
-    if (events.length === 0) return;
-
-    const escapeCsv = (value: unknown) => {
-      const text = String(value ?? '');
-      return `"${text.replace(/"/g, '""')}"`;
-    };
-
-    const headers = [
-      'Title',
-      'Date',
-      'Time',
-      'Venue',
-      'Status',
-      'Attendees',
-      'Description',
-    ];
-
-    const rows = events.map((event) => [
-      event.title,
-      event.date,
-      event.time,
-      event.venue,
-      event.status,
-      event.attendees,
-      event.description || '',
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => escapeCsv(cell)).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const dateStamp = format(new Date(), 'yyyy-MM-dd');
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `event-calendar-export-${dateStamp}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      csvFilename('event-calendar-export'),
+      ['Title', 'Date', 'Time', 'Venue', 'Status', 'Attendees', 'Description'],
+      events.map((event) => [
+        event.title,
+        event.date,
+        event.time,
+        event.venue,
+        event.status,
+        event.attendees,
+        event.description || '',
+      ]),
+    );
   };
 
   if (loading) {

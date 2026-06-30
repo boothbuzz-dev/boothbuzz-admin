@@ -38,6 +38,7 @@ import {
   type SavedReportForView,
   type CustomReportAnalytics,
 } from '../components/Reports/CustomReportViewModal';
+import { csvFilename, downloadCsv } from '../lib/exportCsv';
 
 interface ReportData {
   period: string;
@@ -87,6 +88,57 @@ const DATE_RANGE_LABELS: Record<string, string> = {
   last_year: 'Last year',
 };
 
+type CustomReportTypeKey = 'revenue' | 'attendance' | 'venue' | 'vendor' | 'custom';
+type CustomReportDateRangeKey = 'last_week' | 'last_month' | 'last_quarter' | 'last_year' | 'custom';
+type CustomReportFormatKey = 'pdf' | 'excel' | 'csv' | 'dashboard';
+
+const CUSTOM_REPORT_TYPE_LABELS: Record<CustomReportTypeKey, string> = {
+  revenue: 'Revenue',
+  attendance: 'Attendance',
+  venue: 'Venue',
+  vendor: 'Vendor',
+  custom: 'Custom Metrics',
+};
+
+const CUSTOM_REPORT_FORMAT_LABELS: Record<CustomReportFormatKey, string> = {
+  pdf: 'PDF',
+  excel: 'Excel',
+  csv: 'CSV',
+  dashboard: 'Dashboard',
+};
+
+const CUSTOM_FORM_DATE_RANGE_LABELS: Record<CustomReportDateRangeKey, string> = {
+  last_week: 'Last week',
+  last_month: 'Last month',
+  last_quarter: 'Last quarter',
+  last_year: 'Last year',
+  custom: 'Page date range',
+};
+
+const VENDOR_EXPORT_ROWS = [
+  ['Catering Partners Collective', 'F&B', 14, 212000, '+11%'],
+  ['Stage & AV Pro', 'Production', 9, 168000, '+4%'],
+  ['Booth Build Co.', 'Fabrication', 11, 94500, '—'],
+  ['Security & Access Ltd.', 'Operations', 22, 128000, '+7%'],
+];
+
+function mapCustomFormDateRange(range: CustomReportDateRangeKey, currentPageRange: string): string {
+  switch (range) {
+    case 'last_week':
+      return 'last_7_days';
+    case 'last_month':
+      return 'last_30_days';
+    case 'last_quarter':
+      return 'last_3_months';
+    case 'last_year':
+      return 'last_year';
+    case 'custom':
+      return currentPageRange;
+    default:
+      return 'last_30_days';
+  }
+}
+
 export const Reports: React.FC = () => {
   const { user, isSuperAdmin, hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'financial' | 'performance' | 'custom'>('overview');
@@ -96,6 +148,17 @@ export const Reports: React.FC = () => {
   const [organizations, setOrganizations] = useState<OrgOption[]>([]);
   const [useSamplePreview, setUseSamplePreview] = useState(true);
   const [viewingCustomReport, setViewingCustomReport] = useState<SavedReportForView | null>(null);
+  const [customReportType, setCustomReportType] = useState<CustomReportTypeKey>('revenue');
+  const [customReportDateRange, setCustomReportDateRange] = useState<CustomReportDateRangeKey>('last_month');
+  const [customReportFormat, setCustomReportFormat] = useState<CustomReportFormatKey>('excel');
+  const [userGeneratedReports, setUserGeneratedReports] = useState<SavedReportForView[]>([]);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [pendingGeneratedReport, setPendingGeneratedReport] = useState<{
+    report: SavedReportForView;
+    format: CustomReportFormatKey;
+    type: CustomReportTypeKey;
+  } | null>(null);
+  const [generateMessage, setGenerateMessage] = useState<string | null>(null);
 
   const { events, venues, loading, error, refetch } = useReportData(selectedReportOrgId, dateRange);
   const { start: rangeStart, end: rangeEnd } = getDateRangeBounds(dateRange);
@@ -342,46 +405,305 @@ export const Reports: React.FC = () => {
     useSamplePreview,
   ]);
 
-  const savedReportsList: SavedReportForView[] = useSamplePreview
-    ? sampleSavedReports
-    : [
-        {
-          name: 'Monthly Revenue Summary',
-          type: 'Revenue',
-          description: 'Rolling monthly revenue totals and event contribution.',
-          lastGenerated: '2024-06-01',
-          format: 'PDF',
-          rows: 48,
-          schedule: 'Monthly',
-        },
-        {
-          name: 'Q2 Performance Report',
-          type: 'Performance',
-          description: 'Quarterly attendance, satisfaction, and ROI snapshot.',
-          lastGenerated: '2024-05-30',
-          format: 'Excel',
-          rows: 120,
-          schedule: 'Quarterly',
-        },
-        {
-          name: 'Venue Engagement Analysis',
-          type: 'Venue',
-          description: 'Venue utilization and revenue ranking.',
-          lastGenerated: '2024-05-28',
-          format: 'Dashboard',
-          rows: 36,
-          schedule: 'On demand',
-        },
-        {
-          name: 'Vendor Performance Review',
-          type: 'Vendor',
-          description: 'Vendor-linked events and estimated commissions.',
-          lastGenerated: '2024-05-25',
-          format: 'PDF',
-          rows: 72,
-          schedule: 'Monthly',
-        },
-      ];
+  const savedReportsList: SavedReportForView[] = useMemo(() => {
+    const base: SavedReportForView[] = useSamplePreview
+      ? sampleSavedReports
+      : [
+          {
+            name: 'Monthly Revenue Summary',
+            type: 'Revenue',
+            description: 'Rolling monthly revenue totals and event contribution.',
+            lastGenerated: '2024-06-01',
+            format: 'PDF',
+            rows: 48,
+            schedule: 'Monthly',
+          },
+          {
+            name: 'Q2 Performance Report',
+            type: 'Performance',
+            description: 'Quarterly attendance, satisfaction, and ROI snapshot.',
+            lastGenerated: '2024-05-30',
+            format: 'Excel',
+            rows: 120,
+            schedule: 'Quarterly',
+          },
+          {
+            name: 'Venue Engagement Analysis',
+            type: 'Venue',
+            description: 'Venue utilization and revenue ranking.',
+            lastGenerated: '2024-05-28',
+            format: 'Dashboard',
+            rows: 36,
+            schedule: 'On demand',
+          },
+          {
+            name: 'Vendor Performance Review',
+            type: 'Vendor',
+            description: 'Vendor-linked events and estimated commissions.',
+            lastGenerated: '2024-05-25',
+            format: 'PDF',
+            rows: 72,
+            schedule: 'Monthly',
+          },
+        ];
+    return [...userGeneratedReports, ...base];
+  }, [useSamplePreview, sampleSavedReports, userGeneratedReports]);
+
+  const countRowsForReportType = (typeKey: CustomReportTypeKey): number => {
+    switch (typeKey) {
+      case 'revenue':
+        return reportData.length;
+      case 'attendance':
+        return cityPerformance.length;
+      case 'venue':
+        return topVenues.length;
+      case 'vendor':
+        return VENDOR_EXPORT_ROWS.length;
+      default:
+        return eventPerformanceRows.length;
+    }
+  };
+
+  const exportReportByType = (typeKey: CustomReportTypeKey, slug?: string): boolean => {
+    const fileSlug = slug || `custom-${typeKey}-report`;
+
+    switch (typeKey) {
+      case 'revenue':
+        return downloadCsv(
+          csvFilename(fileSlug),
+          ['Period', 'Events', 'Revenue', 'Attendees', 'Venues', 'Growth %'],
+          reportData.map((row) => [
+            row.period,
+            row.events,
+            row.revenue,
+            row.attendees,
+            row.societies,
+            row.growth.toFixed(1),
+          ]),
+        );
+      case 'attendance':
+        return downloadCsv(
+          csvFilename(fileSlug),
+          ['City', 'Events', 'Revenue', 'Venues', 'Growth %'],
+          cityPerformance.map((city) => [
+            city.city,
+            city.events,
+            city.revenue,
+            city.societies,
+            city.growth.toFixed(1),
+          ]),
+        );
+      case 'venue':
+        return downloadCsv(
+          csvFilename(fileSlug),
+          ['Venue', 'Events', 'Revenue', 'Growth %'],
+          topVenues.map((venue) => [venue.name, venue.events, venue.revenue, venue.growth]),
+        );
+      case 'vendor':
+        return downloadCsv(
+          csvFilename(fileSlug),
+          ['Vendor', 'Category', 'Linked Events', 'Est. Commission', 'YoY'],
+          VENDOR_EXPORT_ROWS,
+        );
+      default:
+        return downloadCsv(
+          csvFilename(fileSlug),
+          ['Event Name', 'Date', 'Attendees', 'Revenue', 'Satisfaction', 'ROI %'],
+          eventPerformanceRows.map((event) => [
+            event.name,
+            event.date,
+            event.attendees,
+            event.revenue,
+            event.satisfaction ?? '',
+            event.roi ?? '',
+          ]),
+        );
+    }
+  };
+
+  const handleGenerateCustomReport = () => {
+    const rangeKey = mapCustomFormDateRange(customReportDateRange, dateRange);
+    const rangeLabel =
+      customReportDateRange === 'custom'
+        ? DATE_RANGE_LABELS[dateRange] ?? dateRange
+        : CUSTOM_FORM_DATE_RANGE_LABELS[customReportDateRange];
+    const typeLabel = CUSTOM_REPORT_TYPE_LABELS[customReportType];
+    const formatLabel = CUSTOM_REPORT_FORMAT_LABELS[customReportFormat];
+    const today = new Date().toISOString().slice(0, 10);
+
+    setIsGeneratingReport(true);
+    setGenerateMessage(null);
+
+    if (rangeKey !== dateRange) {
+      setDateRange(rangeKey);
+    }
+
+    const report: SavedReportForView = {
+      name: `${typeLabel} Report — ${rangeLabel}`,
+      type: typeLabel,
+      description: `${typeLabel} analysis for ${rangeLabel}. Generated on ${today}.`,
+      lastGenerated: today,
+      format: formatLabel,
+      rows: countRowsForReportType(customReportType),
+      schedule: 'On demand',
+    };
+
+    setUserGeneratedReports((prev) => [report, ...prev]);
+    setPendingGeneratedReport({
+      report,
+      format: customReportFormat,
+      type: customReportType,
+    });
+  };
+
+  useEffect(() => {
+    if (!pendingGeneratedReport) return;
+    if (showLiveLoading) {
+      if (error) {
+        setPendingGeneratedReport(null);
+        setIsGeneratingReport(false);
+        window.alert('Failed to load report data. Please try again.');
+      }
+      return;
+    }
+
+    const { report, format, type } = pendingGeneratedReport;
+
+    if (format === 'dashboard' || format === 'pdf') {
+      setViewingCustomReport(report);
+      setGenerateMessage(
+        format === 'pdf'
+          ? 'Report opened — use Print / Save as PDF in the viewer.'
+          : 'Report generated — opened in the interactive dashboard.',
+      );
+    } else {
+      const slug = report.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+      const ok = exportReportByType(type, slug);
+      if (!ok) {
+        window.alert('No data available to export for this report.');
+      } else {
+        setGenerateMessage(`Report downloaded as Excel (${report.rows ?? 0} rows).`);
+      }
+    }
+
+    setPendingGeneratedReport(null);
+    setIsGeneratingReport(false);
+  }, [
+    pendingGeneratedReport,
+    showLiveLoading,
+    reportData,
+    eventPerformanceRows,
+    cityPerformance,
+    topVenues,
+    error,
+  ]);
+
+  useEffect(() => {
+    if (!generateMessage) return;
+    const timer = window.setTimeout(() => setGenerateMessage(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [generateMessage]);
+
+  const handleExportReport = () => {
+    let ok = false;
+
+    switch (activeTab) {
+      case 'events':
+        ok = downloadCsv(
+          csvFilename('event-performance-export'),
+          ['Event Name', 'Date', 'Attendees', 'Revenue', 'Satisfaction', 'ROI %'],
+          eventPerformanceRows.map((event) => [
+            event.name,
+            event.date,
+            event.attendees,
+            event.revenue,
+            event.satisfaction ?? '',
+            event.roi ?? '',
+          ]),
+        );
+        break;
+      case 'financial': {
+        const streamRows =
+          revenueStreams ??
+          (totalRevenue > 0 ? [{ label: 'Event revenue', amount: totalRevenue }] : []);
+        const rows = [
+          ...streamRows.map((row) => ['Revenue', row.label, row.amount]),
+          ...expenseLines.map((row) => ['Expense', row.label, row.amount]),
+        ];
+        ok = downloadCsv(csvFilename('financial-report-export'), ['Type', 'Label', 'Amount'], rows);
+        break;
+      }
+      case 'performance':
+        ok = downloadCsv(
+          csvFilename('city-performance-export'),
+          ['City', 'Events', 'Revenue', 'Venues', 'Growth %'],
+          cityPerformance.map((city) => [
+            city.city,
+            city.events,
+            city.revenue,
+            city.societies,
+            city.growth.toFixed(1),
+          ]),
+        );
+        break;
+      case 'custom':
+        ok = downloadCsv(
+          csvFilename('saved-reports-export'),
+          ['Name', 'Type', 'Description', 'Last Generated', 'Format', 'Rows', 'Schedule'],
+          savedReportsList.map((report) => [
+            report.name,
+            report.type,
+            report.description ?? '',
+            report.lastGenerated,
+            report.format,
+            report.rows ?? '',
+            report.schedule ?? '',
+          ]),
+        );
+        break;
+      default:
+        ok = downloadCsv(
+          csvFilename('reports-overview-export'),
+          ['Period', 'Events', 'Revenue', 'Attendees', 'Venues', 'Growth %'],
+          reportData.map((row) => [
+            row.period,
+            row.events,
+            row.revenue,
+            row.attendees,
+            row.societies,
+            row.growth.toFixed(1),
+          ]),
+        );
+    }
+
+    if (!ok) {
+      window.alert('No data available to export for the current view.');
+    }
+  };
+
+  const handleDownloadSavedReport = (report: SavedReportForView) => {
+    const slug = report.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const type = report.type.toLowerCase();
+    let ok = false;
+
+    if (type.includes('revenue')) {
+      ok = exportReportByType('revenue', slug);
+    } else if (type.includes('performance') || type.includes('custom')) {
+      ok = exportReportByType('custom', slug);
+    } else if (type.includes('attendance') || type.includes('city') || type.includes('region')) {
+      ok = exportReportByType('attendance', slug);
+    } else if (type.includes('venue')) {
+      ok = exportReportByType('venue', slug);
+    } else if (type.includes('vendor')) {
+      ok = exportReportByType('vendor', slug);
+    } else {
+      ok = exportReportByType('custom', slug);
+    }
+
+    if (!ok) {
+      window.alert('No data available to export for this report.');
+    }
+  };
 
   if (!hasRole(['super_admin', 'admin'])) {
     return (
@@ -462,7 +784,7 @@ export const Reports: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
-          <Button className="flex items-center space-x-2">
+          <Button className="flex items-center space-x-2" onClick={handleExportReport}>
             <Download className="h-4 w-4" />
             <span>Export Report</span>
           </Button>
@@ -775,7 +1097,7 @@ export const Reports: React.FC = () => {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Event Performance Analysis</h3>
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={handleExportReport}>
                   <Download className="h-4 w-4 mr-1" />
                   Export
                 </Button>
@@ -1010,7 +1332,11 @@ export const Reports: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <select
+                    value={customReportType}
+                    onChange={(e) => setCustomReportType(e.target.value as CustomReportTypeKey)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
                     <option value="revenue">Revenue Analysis</option>
                     <option value="attendance">Attendance Report</option>
                     <option value="venue">Venue Performance</option>
@@ -1021,18 +1347,26 @@ export const Reports: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <select
+                    value={customReportDateRange}
+                    onChange={(e) => setCustomReportDateRange(e.target.value as CustomReportDateRangeKey)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
                     <option value="last_week">Last Week</option>
                     <option value="last_month">Last Month</option>
                     <option value="last_quarter">Last Quarter</option>
                     <option value="last_year">Last Year</option>
-                    <option value="custom">Custom Range</option>
+                    <option value="custom">Use page date range ({DATE_RANGE_LABELS[dateRange] ?? dateRange})</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Format</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <select
+                    value={customReportFormat}
+                    onChange={(e) => setCustomReportFormat(e.target.value as CustomReportFormatKey)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
                     <option value="pdf">PDF Report</option>
                     <option value="excel">Excel Spreadsheet</option>
                     <option value="csv">CSV Data</option>
@@ -1041,10 +1375,20 @@ export const Reports: React.FC = () => {
                 </div>
               </div>
 
+              {generateMessage && (
+                <p className="mt-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  {generateMessage}
+                </p>
+              )}
+
               <div className="mt-6">
-                <Button className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Generate Report</span>
+                <Button
+                  className="flex items-center space-x-2"
+                  onClick={handleGenerateCustomReport}
+                  disabled={isGeneratingReport}
+                >
+                  <FileText className={`h-4 w-4 ${isGeneratingReport ? 'animate-pulse' : ''}`} />
+                  <span>{isGeneratingReport ? 'Generating…' : 'Generate Report'}</span>
                 </Button>
               </div>
             </CardContent>
@@ -1090,7 +1434,13 @@ export const Reports: React.FC = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        type="button"
+                        aria-label={`Download ${report.name}`}
+                        onClick={() => handleDownloadSavedReport(report)}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button size="sm" variant="outline">
